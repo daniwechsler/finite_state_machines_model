@@ -273,7 +273,7 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
                                 verbose=False):
 
     """
-    The function evolves a population of N FSM with n states each until that
+    The function evolves a population of N FSM with n states each until
     the interaction network has connectance c_target and normalized modularity
     Q_norm_target.
 

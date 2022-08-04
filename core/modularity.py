@@ -20,7 +20,7 @@ def modularity(G, return_groups=False):
     assert G.shape[0] == G.shape[1]
     assert np.all(np.abs(G - G.T) == 0)
 
-    igraph.arpack_options.mxiter = 10000
+    #igraph.arpack_options.mxiter = 10000
     G = G.copy()
     np.fill_diagonal(G, 0)
     g = igraph.Graph.Adjacency(G.tolist(), mode=igraph.ADJ_UNDIRECTED)

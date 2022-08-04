@@ -9,8 +9,7 @@ class MinimizerUnipartite:
     """
       Given a set of FSM, the Minimizer tries to find a new set of FSM that:
 
-      (1) Has the same number of FSM as the original set.
-      (2) Gives rise to the same adjacency matrix G as the original set.
+      (1) Gives rise to the same adjacency matrix G as the original set.
       (2) Has the minimum number of FSM states (i.e. the sum of the number of
       states of the FSM in the set is minimal).
 
