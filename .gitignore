@@ -8,4 +8,8 @@ data/
 experiment_1.py
 experiment_2.py
 export.sh
-results_csv.ipynb
+results.ipynb
+README.txt
+readme_private.txt
+file_list.txt
+modularity_in_biological_networks.zip
