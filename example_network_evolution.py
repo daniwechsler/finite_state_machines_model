@@ -3,7 +3,7 @@ In this example a population of N FSM with n states each is
 evolved such that the interaction network has a desired connectance
 and modularity.
 """
-from core.network_evolution import *
+from core.network_evolution import run_modularity_optimization
 
 N = 20  # Number of nodes
 n = 10  # Number of FSM states

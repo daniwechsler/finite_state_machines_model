@@ -3,6 +3,7 @@ Script to minimize a set of FSM such that their interactions are preserved.
 """
 
 import numpy as np
+from core.utilities import compute_G
 
 
 class MinimizerUnipartite:
@@ -41,9 +42,8 @@ class MinimizerUnipartite:
         self.minimize_individual_i = None
 
     def compute_G(self, fsm_):
-        for i, fsm_i in enumerate(fsm_):
-            for j, fsm_j in enumerate(fsm_):
-                self.G[i, j], out1, out2, pin1, pin2 = fsm_i.encounter(fsm_j, th=self.th, return_cycle=True, return_pin=True)
+        self.G = compute_G(fsm_, th=self.th)
+
 
     def select_fsm_for_change(self):
         """

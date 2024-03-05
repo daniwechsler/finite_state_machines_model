@@ -152,7 +152,7 @@ def sort_matrix_by_modules(G, modularity_function=None, row_groups=None, col_gro
 
 def cacl_modularity_unipartite(G, NUM_RANDOMIZATIONS=0, RETURN_NORMALIZED=False, randomization_function=None, **kwargs):
     """
-    Computes the modularity of the unipartite network G (G must be a symmetric square matrix containing only 0's and 1's).
+    Computes the modularity (normalized) of the unipartite network G (G must be a symmetric square matrix containing only 0's and 1's).
 
     :param G: The network
     :param NUM_RANDOMIZATIONS: Number of randomizations used to compute p-Value and z-Score.

@@ -6,8 +6,8 @@ from core.fsm_minimization import minimize_fsm
 from core.modularity import *
 from core.modularity_maximization import calc_max_modularity, rewire_unipartite
 from core.finite_state_machine import get_random_population
-from core.utilities import *
-from core.basic_measures import *
+from core.utilities import get_ER_graph, compute_G, print_matrix
+from core.basic_measures import mutual_information, calc_connectance
 import io
 import json
 import numpy as np
@@ -158,7 +158,7 @@ class ModularityTargetOptimizer(object):
 
     def print_state(self, G):
 
-        printMatrix(sort_matrix_by_modules(G, row_groups=self.groups, col_groups=self.groups))
+        print_matrix(sort_matrix_by_modules(G, row_groups=self.groups, col_groups=self.groups))
         print("Q: ", self.Q_norm_current, " c: ", self.c_current)
 
 
@@ -225,9 +225,7 @@ class ConnectanceTargetOptimizer(object):
     def __init__(self, c_target, c_epsilon=0.02):
 
         self.c_target = c_target
-
         self.c_epsilon = c_epsilon
-
         self.d_c_old = None
         self.c_current = None
 
@@ -254,8 +252,7 @@ class ConnectanceTargetOptimizer(object):
         return True
 
     def print_state(self, G):
-
-        printMatrix(G)
+        print_matrix(G)
         print("c: ", self.c_current)
 
 
@@ -282,29 +279,35 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
     :param c_target: Target value of connectance
     :param Q_norm_target: Target value of normalized modularity
     :param th: Interaction specificity (delta)
-    :param MAX_UPDATES:
-    :param NUM_RANDOMIZATIONS:
-    :param MAX_MODULARITY_MAX_NO_IMPROVEMENT:
-    :param FSM_COMPLEXITY_MAX_NO_IMPROVE:
+    :param MAX_UPDATES: The maximum number of iterations of the algorithm before it aborts.
+    :param NUM_RANDOMIZATIONS: The number of randomized networks used to calculate Q_norm (normalized modularity)
+    :param MAX_MODULARITY_MAX_NO_IMPROVEMENT: Define when the network modularity maximizer aborts. In particular, it's
+    the number of consecutive iterations without improving modularity until it aborts.
+    :param FSM_COMPLEXITY_MAX_NO_IMPROVE: Defines when the FSM minimization algorithm aborts. In particular, it's the
+    number of consecutive iterations without finding a smaller set of FSM giving rise to the same network.
     :param DO_RANDOMIZATION_STEP: Whether to first evolve towards network with average pairwise mutual information
     of random network (default is True)
     :param C_EPSILON: Tolerance for connectance
     :param Q_NORM_EPSILON: Tolerance for modularity
     :param MUT_EPSILON: Tolerance for mutual information
-    :param NUM_Q_MAX_SAMPLES:
+    :param NUM_Q_MAX_SAMPLES: Number of times the modularity maximization algorithm is run (the actual maximal value of
+    modularity is then taken to be the highest value identified among the NUM_Q_MAX_SAMPLES attempts)
     :param plot_stats:
     :param verbose:
     :return:
     """
+
     mu = 0.1
     #######################################
     # Create the initial community (random)
     #######################################
+    if verbose: print("Create initial community")
     community = get_random_population(N, n)
 
     #######################################
     # Compute E[I], Q_rand, Q_max
     #######################################
+    if verbose: print("Compute expected modularity and expected mutual information of ER")
     start_time = time.time()
     L = int(c_target * ((N ** 2) - N) / 2)
     Q_rand_samples = []
@@ -312,7 +315,7 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
 
     # Compute expected modularity and expected mutual information of
     # ER networks.
-    for i in range(NUM_RANDOMIZATIONS):
+    for _ in range(NUM_RANDOMIZATIONS):
         G_rand = get_ER_graph(N, L)
         I_rand.append(mutual_information(G_rand))
         Q_rand_samples.append(modularity(G_rand))
@@ -322,9 +325,10 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
     duration_Q_rand = time.time() - start_time
 
     # Compute expected maximal modularity of ER-network
+    if verbose: print("Compute expected maximal modularity of ER-network")
     start_time = time.time()
     Q_max_ = []
-    for i in range(NUM_Q_MAX_SAMPLES):
+    for _ in range(NUM_Q_MAX_SAMPLES):
         G_rand = get_ER_graph(N, L)
         Q_max, G_max = calc_max_modularity(G_rand, MAX_NO_IMPROVEMENT=MAX_MODULARITY_MAX_NO_IMPROVEMENT, modularity_function=modularity,
                                            swapping_function=rewire_unipartite, verbose=verbose,
@@ -339,14 +343,16 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
     #######################################
 
     if DO_RANDOMIZATION_STEP:
+        # Evolve the network to desired connectance and mutual information of a random network
         func_c = MutualInformationTargetOptimizer(c_target, E_I, mut_epsilon=MUT_EPSILON, c_epsilon=C_EPSILON)
     else:
         func_c = ConnectanceTargetOptimizer(c_target, c_epsilon=C_EPSILON)
 
     # Run optimization to E[I]
+    if verbose: print("Run optimization to E[I]")
     start_time_randomization = time.time()
     opt = OptimizerUnipartite(community, func_c, th=th, mu=mu)
-    num_iterations_randomization = opt.optimize(verbose=True, MAX_ITERATIONS=MAX_UPDATES)
+    num_iterations_randomization = opt.optimize(verbose=verbose, MAX_ITERATIONS=MAX_UPDATES)
 
     if DO_RANDOMIZATION_STEP:
         I_end = func_c.mut_current
@@ -373,11 +379,12 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
                                                                 return_groups=True)
 
     print('{0:16}  {1}'.format('c_start:', round(c_start, 5)))
-    printMatrix(G_sorted)
+    print_matrix(G_sorted)
 
     ###################################
     # Target Modularity
     ###################################
+    if verbose: print("Run optimization to target modularity")
     start_time = time.time()
 
     func = ModularityTargetOptimizer(c_target, Q_norm_target, Q_rand, Q_max, Q_norm_epsilon=Q_NORM_EPSILON, c_epsilon=C_EPSILON)
@@ -396,12 +403,18 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
     c_end = calc_connectance(G_end)
 
     # Compute average trait complexity
+    if verbose: print("Compute average trait complexity")
     start_time = time.time()
     rel_complexity_end = minimize_fsm(opt.fsm, th=th,
                                                         MAX_NO_IMPROVEMENT=FSM_COMPLEXITY_MAX_NO_IMPROVE,
-                                                        verbose=False)
+                                                        verbose=verbose)
 
     duration_complexity = time.time() - start_time
+
+    # Compute average absolute trait complexity
+    if verbose: print("Compute average trait complexity")
+
+    abs_complexity_end = np.mean([fsm.minimize().n for fsm in opt.fsm])
 
     Q_end, groups_end = modularity(G_end, return_groups=True)
     Q_norm_end = (Q_end - Q_rand) / (Q_max - Q_rand)
@@ -411,7 +424,7 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
 
     G_sorted, row_indices, col_indices = sort_matrix_by_modules(G_end, row_groups=groups_end, col_groups=groups_end,
                                                                 return_groups=True)
-    printMatrix(G_sorted)
+    print_matrix(G_sorted)
 
     print('{0:16}  {1}'.format('Q_norm_start:', round(Q_norm_start, 3)))
     print('{0:16}  {1}'.format('Q_norm_end:', round(Q_norm_end, 3)))
@@ -437,6 +450,7 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
         'c_start': c_start,
         'c_end': c_end,
         'avg_rel_complexity_end': rel_complexity_end,
+        'avg_abs_complexity_end': abs_complexity_end,
         'Q_start': Q_start,
         'Q_end': Q_end,
         'Q_rand': Q_rand,
@@ -478,19 +492,3 @@ def run_modularity_optimization(n, N, c_target, Q_norm_target, th,
     return stats
 
 
-
-if __name__ == '__main__':
-    import cProfile
-    np.random.seed(229)
-    n = 20
-    N = 30
-    c_target = 0.5
-
-    VERBOSE=True
-    Q_target = 0.0
-    th = 1.0
-
-    #def run ():
-    run_modularity_optimization(n, N, c_target, Q_target, th, NUM_RANDOMIZATIONS=100, plot_stats=True, verbose=VERBOSE, DO_RANDOMIZATION_STEP=False)
-
-    #cProfile.run('run()', filename="my.profile")

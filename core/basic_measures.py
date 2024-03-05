@@ -1,3 +1,7 @@
+"""
+Implementation of functions to calculate basic network measures.
+"""
+
 import numpy as np
 
 

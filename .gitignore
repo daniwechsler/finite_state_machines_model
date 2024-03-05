@@ -2,14 +2,7 @@
 *~
 .idea/*
 .ipynb_checkpoints/*
-plots/
-lib/
-data/
-experiment_1.py
-experiment_2.py
 export.sh
-results.ipynb
-README.txt
 readme_private.txt
 file_list.txt
 modularity_in_biological_networks.zip

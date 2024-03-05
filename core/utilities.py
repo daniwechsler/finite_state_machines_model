@@ -1,4 +1,11 @@
+"""
+Implementation of utilities that can be used to e.g. print adjacency matrices.
+"""
+
 import numpy as np
+import time
+import copy
+import igraph
 
 
 def compute_G(population, th=1.0, return_cycles=False, return_pins=False):
@@ -34,40 +41,7 @@ def compute_G(population, th=1.0, return_cycles=False, return_pins=False):
     return G
 
 
-def print_cylce_and_pin_matrix(population):
-    """
-    Prints for each pair of FSM in population the symbols they communicate before the cycle
-    and on the cycle.
-    :param population:
-    :return:
-    """
-    OKGREEN = '\033[34m'
-    ENDC = '\033[0m'
-
-    G, out, pins = compute_G(population, return_cycles=True, return_pins=True)
-
-    MAX_PIN_LENGTH = np.max(list(map(len, np.array(pins).flatten())))
-    MAX_CYCLE_LENGTH = np.max(list(map(len, np.array(out).flatten())))
-
-    for i in range(len(population)):
-        row_animals = ""
-        row_plants = ""
-        for j in range(len(population)):
-            if G[i,j] == 1:
-                out_a = pins[i][j].rjust(MAX_PIN_LENGTH) + "|" + OKGREEN + out[i][j].ljust(MAX_CYCLE_LENGTH) + ENDC
-                out_p = pins[i][j].rjust(MAX_PIN_LENGTH) + "|" +  OKGREEN + out[i][j].ljust(MAX_CYCLE_LENGTH) + ENDC
-            else:
-                out_a = pins[i][j].rjust(MAX_PIN_LENGTH) + "|" +  out[i][j].ljust(MAX_CYCLE_LENGTH)
-                out_p = pins[i][j].rjust(MAX_PIN_LENGTH) + "|" +  out[i][j].ljust(MAX_CYCLE_LENGTH)
-
-            row_animals += out_a
-            row_plants += out_p
-
-        print(row_animals)
-        print(row_plants)
-        print()
-
-def printMatrix(G, index_start=1, column_gap=2, P_names=None, A_names=None):
+def print_matrix(G, index_start=1, column_gap=2, P_names=None, A_names=None):
     """
     Prints the adjacency matrix with 0 as not filled squares
     and entries > 0 as filled squares.
@@ -132,3 +106,21 @@ def get_ER_graph(N, L):
 
     np.fill_diagonal(G_ER, 1)
     return G_ER
+
+
+def get_canonical_network(G):
+    """
+    Returns a canonical version of the network G (adjacency matrix).
+    :param G:
+    :return:
+    """
+    assert set(np.unique(G)) == set([0, 1])
+    assert G.shape[0] == G.shape[1]
+    assert np.sum(G.T - G) == 0
+
+    g = igraph.Graph.Adjacency(G.tolist(), mode=igraph.ADJ_UNDIRECTED)
+    graph_canonical = g.permute_vertices(g.canonical_permutation())
+    G_canonical = graph_canonical.get_adjacency()
+
+    return np.array(G_canonical.data)
+

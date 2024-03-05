@@ -1,3 +1,7 @@
+"""
+Implementation of the finite-state machine (FSM) class.
+"""
+
 import numpy as np
 import copy
 import itertools as it
@@ -25,7 +29,7 @@ class FSM(object):
     S_now       := The current state
     in_symbol   := Input symbol
     S_next      := The state to transfer to when in symbol is received in S_now
-    out_symbol  := The symbol of S_next
+    out_symbol  := The symbol of S_now
     """
 
     def __init__(self, genome, n, symbols):
@@ -310,7 +314,7 @@ class FSM(object):
         # Check if there are unreachable states. If so, first create an FSM with
         # the unreachable states removed and call minimize() on this new FSM.
         # Otherwise proceed in this (self) FSM
-        if len(self.find_reachable_states()) < self.n and False:
+        if len(self.find_reachable_states()) < self.n:
             fsm = self.remove_unreachable_states()
             return fsm.minimize()
 
@@ -454,7 +458,30 @@ class FSM(object):
 
 
 def get_random_genome(n, alphabet=["0", "1"], accept_state=False, random_generator=None):
+    """
+    Returns a genome (sequential) representation of a finite-state machine.
+    Each of the n states is represented by 1 + len(alphabet) digits (i.e., 'nucleotides').
+    The first one indicates the output symbol of the state and the remaining len(alphabet)
+    digits indicate for each possible symbol the next state to transition to when receiving
+    that symbol. The starting state is the left most state on the genome.
 
+    A genome for a n=3 and alphabet=[0, 1] may look like this:
+
+        S1      S2      S3
+     +------+-------+------+
+        v v     v v     v v
+      1 0 2 - 0 2 1 - 1 1 2
+      ^       ^       ^
+
+    ^ := output symbols
+    v := target states
+
+    :param n:
+    :param alphabet:
+    :param accept_state:
+    :param random_generator:
+    :return:
+    """
     if not random_generator is None:
         rg = random_generator
     else:
@@ -478,7 +505,8 @@ def get_random_population(N, n, alphabet=['0', '1'], mu=None, random_generator=N
     population = []
     # If mutation rate is given create a seed FSM and N-1 clones
     # with each gene mutated with probability mu.
-    # Otherwise just sample N FSM uniformly at random.
+    # Otherwise, just sample N FSM uniformly at random.
+
     if not mu is None:
         genome, symbols = get_random_genome(n, alphabet)
         fsm = FSM(genome, n, symbols)
@@ -493,32 +521,6 @@ def get_random_population(N, n, alphabet=['0', '1'], mu=None, random_generator=N
             fsm = FSM(genome, n, symbols)
             population.append(fsm)
     return population
-
-
-def get_connected_random_population(N, n, th):
-    """
-    Returns a random bipartite population where the degree of each
-    node is at least 1.
-    :param N:
-    :param n:
-    :param th:
-    :return:
-    """
-
-    while True:
-        fsm_a_ = get_random_population(N, n)
-        fsm_b_ = get_random_population(N, n)
-        G = np.zeros((N, N), dtype=int)
-
-        for i, fsm_i in enumerate(fsm_a_):
-            for j, fsm_j in enumerate(fsm_b_):
-                G_ij, out_i, out_j = fsm_i.encounter(fsm_j, th=th)
-                G[i, j] = G_ij
-
-        k_p = np.sum(G, axis=0)
-        k_a = np.sum(G, axis=1)
-        if np.min(k_p) > 0 and np.min(k_a) > 0:
-            return fsm_a_, fsm_b_
 
 
 def enumerate_FSM(n, alphabet=['0', '1']):
@@ -547,63 +549,5 @@ def enumerate_FSM(n, alphabet=['0', '1']):
             FMS_.append(FSM(genome, n, symbols))
 
     return FMS_
-
-
-def create_random_A(N_x, N_y, n, th, return_fsm=False, alphabet=['0', '1']):
-    """
-    Creates a random community.
-    :param N_x:
-    :param N_y:
-    :param n:
-    :param th:
-    :param return_fsm:
-    :param alphabet:
-    :param only_loop:
-    :return:
-    """
-    fsm_a_ = get_random_population(N_x, n, alphabet)
-    fsm_b_ = get_random_population(N_y, n, alphabet)
-    A = np.zeros((N_x, N_y), dtype=int)
-    cycle_length = np.zeros((N_x, N_y), dtype=int)
-
-    for i, fsm_i in enumerate(fsm_a_):
-        for j, fsm_j in enumerate(fsm_b_):
-            A_ij, out_i, out_j = fsm_i.encounter(fsm_j, th=th, return_cycle=True)
-            A[i, j] = A_ij
-            cycle_length[i, j] = len(out_i)
-
-    if return_fsm:
-        return A, cycle_length, fsm_a_, fsm_b_
-
-    return A, cycle_length
-
-
-def create_random_A_unipartite(N, n, th, return_fsm=False, alphabet=['0', '1']):
-
-    fsm_ = get_random_population(N, n, alphabet)
-
-    A = np.zeros((N, N), dtype=int)
-    cycle_length = np.zeros((N, N), dtype=int)
-
-    for i, fsm_i in enumerate(fsm_):
-        for j, fsm_j in enumerate(fsm_):
-            A_ij, out_i, out_j = fsm_i.encounter(fsm_j, th=th, return_cycle=True)
-            A[i, j] = A_ij
-            cycle_length[i, j] = len(out_i)
-
-    if return_fsm:
-        return A, cycle_length, fsm_
-
-    return A, cycle_length
-
-
-
-
-
-
-
-
-
-
 
 
