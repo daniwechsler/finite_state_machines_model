@@ -2,8 +2,7 @@
 
 The repository contains the python code (model and analysis) and data for:
 
-Wechsler, D., and J. Bascompte. Mechanistic interactions as the origin of modularity in <br /> biological networks. 
- *unpublished*.
+Wechsler, D., and J. Bascompte. Mechanistic interactions as the origin of modularity in biological <br> networks. 2024. Proceedings of the Royal Society B. 10.1098/rspb.2024.0269.
 
 ```
 modularity_in_biological_networks.zip
